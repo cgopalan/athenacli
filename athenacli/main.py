@@ -61,7 +61,7 @@ class AthenaCli(object):
     MAX_LEN_PROMPT = 45
 
     def __init__(self, region, aws_access_key_id, aws_secret_access_key,
-                 s3_staging_dir, work_group, athenaclirc, profile, database):
+                 s3_staging_dir, work_group, athenaclirc, profile, connect_using_credentials_file, database):
 
         config_files = [DEFAULT_CONFIG_FILE]
         if os.path.exists(os.path.expanduser(athenaclirc)):
@@ -75,7 +75,10 @@ class AthenaCli(object):
         )
 
         try:
-            self.connect(aws_config, database)
+            if connect_using_credentials_file:
+                self.connect(aws_config, profile_name='mfa', database=database)
+            else:
+                self.connect(aws_config, database)
         except Exception as e:
             self.echo(str(e), err=True, fg='red')
             err_msg = '''
@@ -192,7 +195,7 @@ For more details about the error, you can check the log file: %s''' % (athenacli
         self.prompt = self.get_prompt(arg)
         return [(None, None, None, "Changed prompt format to %s" % arg)]
 
-    def connect(self, aws_config, database):
+    def connect(self, aws_config, profile_name, database):
         self.sqlexecute = SQLExecute(
             aws_access_key_id = aws_config.aws_access_key_id,
             aws_secret_access_key = aws_config.aws_secret_access_key,
@@ -200,6 +203,7 @@ For more details about the error, you can check the log file: %s''' % (athenacli
             s3_staging_dir = aws_config.s3_staging_dir,
             work_group = aws_config.work_group,
             role_arn = aws_config.role_arn,
+            profile_name = profile_name,
             database = database
         )
 
@@ -617,9 +621,10 @@ def is_mutating(status):
 @click.option('--athenaclirc', default=ATHENACLIRC, type=click.Path(dir_okay=False), help="Location of athenaclirc file.")
 @click.option('--profile', type=str, default='default', help='AWS profile')
 @click.option('--table-format', type=str, default='csv', help='Table format used with -e option.')
+@click.option('--connect-using-credentials-file', type=bool, default=True, help='Whether to connect with ~/.aws/credentials')
 @click.argument('database', default='default', nargs=1)
 def cli(execute, region, aws_access_key_id, aws_secret_access_key,
-        s3_staging_dir, work_group, athenaclirc, profile, table_format, database):
+        s3_staging_dir, work_group, athenaclirc, profile, table_format, connect_using_credentials_file, database):
     '''A Athena terminal client with auto-completion and syntax highlighting.
 
     \b
@@ -651,6 +656,7 @@ def cli(execute, region, aws_access_key_id, aws_secret_access_key,
         work_group=work_group,
         athenaclirc=athenaclirc,
         profile=profile,
+        connect_using_credentials_file=connect_using_credentials_file,
         database=database
     )
 

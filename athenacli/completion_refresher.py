@@ -59,6 +59,7 @@ class CompletionRefresher(object):
             s3_staging_dir = e.s3_staging_dir,
             work_group = e.work_group,
             role_arn = e.role_arn,
+            profile_name = e.profile_name,
             database = e.database
         )
 

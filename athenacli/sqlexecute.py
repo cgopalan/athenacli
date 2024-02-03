@@ -27,6 +27,7 @@ class SQLExecute(object):
         s3_staging_dir,
         work_group,
         role_arn,
+        profile_name,
         database
     ):
         self.aws_access_key_id = aws_access_key_id
@@ -35,21 +36,32 @@ class SQLExecute(object):
         self.s3_staging_dir = s3_staging_dir
         self.work_group = work_group
         self.role_arn = role_arn
+        self.profile_name = profile_name
         self.database = database
 
         self.connect()
 
     def connect(self, database=None):
-        conn = pyathena.connect(
-            aws_access_key_id=self.aws_access_key_id,
-            aws_secret_access_key=self.aws_secret_access_key,
-            region_name=self.region_name,
+
+        if self.profile_name:
+            conn = pyathena.connect(
+            profile_name=self.profile_name,
             s3_staging_dir=self.s3_staging_dir,
-            work_group=self.work_group,
+            region_name=self.region_name,
             schema_name=database or self.database,
-            role_arn=self.role_arn,
-            poll_interval=0.2 # 200ms
-        )
+            poll_interval=0.2
+            )
+        else:
+            conn = pyathena.connect(
+                aws_access_key_id=self.aws_access_key_id,
+                aws_secret_access_key=self.aws_secret_access_key,
+                region_name=self.region_name,
+                s3_staging_dir=self.s3_staging_dir,
+                work_group=self.work_group,
+                schema_name=database or self.database,
+                role_arn=self.role_arn,
+                poll_interval=0.2 # 200ms
+            )
         self.database = database or self.database
 
         if hasattr(self, 'conn'):
